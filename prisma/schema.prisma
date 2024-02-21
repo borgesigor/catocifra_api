@@ -1,0 +1,223 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Media {
+  id        String   @id @default(uuid())
+  path      String
+  altText   String
+  tags      String[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  mediaType String
+
+  profileImage      Profile[] @relation(name: "ProfileImage")
+  profileCoverImage Profile[] @relation(name: "ProfileCoverImage")
+}
+
+model User {
+  id           String                @id @default(uuid())
+  name         String
+  surname      String
+  email        String                @unique
+  password     String
+  username     String                @unique
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+  artist       Artist?
+  compositor   Compositor?
+  contributor  PlaylistContributor[]
+  permission   String[]
+  comment      Comment[]
+  profile      Profile?
+  authorFollow Follow[]              @relation(name: "AuthorFollowProfile")
+  following    Follow[]              @relation(name: "FollowingProfile")
+  playlist     Playlist[]
+}
+
+model Follow {
+  userId      String
+  followingId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User @relation(name: "AuthorFollowProfile", fields: [userId], references: [id])
+  following User @relation(name: "FollowingProfile", fields: [followingId], references: [id])
+
+  @@id([userId, followingId])
+}
+
+model Profile {
+  id             String           @id @default(uuid())
+  userId         String           @unique
+  bio            String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  profileImageId String
+  coverImageId   String
+  user           User             @relation(fields: [userId], references: [id])
+  profileImage   Media            @relation(name: "ProfileImage", fields: [profileImageId], references: [id])
+  coverImage     Media            @relation(name: "ProfileCoverImage", fields: [coverImageId], references: [id])
+  comment        CommentProfile[]
+}
+
+model SongArtist {
+  songId    String
+  artistId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  song   Song   @relation(fields: [songId], references: [id])
+  artist Artist @relation(fields: [artistId], references: [id])
+
+  @@id([songId, artistId])
+}
+
+model SongCompositor {
+  songId       String
+  compositorId String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  song       Song       @relation(fields: [songId], references: [id])
+  compositor Compositor @relation(fields: [compositorId], references: [id])
+
+  @@id([songId, compositorId])
+}
+
+model Song {
+  id             String           @id @default(uuid())
+  title          String
+  duration       String
+  releaseDate    DateTime
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  songArtist     SongArtist[]
+  songCompositor SongCompositor[]
+  tablature      Tablature[]
+  playlistSong   PlaylistSong[]
+  songGenre      SongGenre[]
+}
+
+model Comment {
+  id               String            @id @default(uuid())
+  authorId         String
+  author           User              @relation(fields: [authorId], references: [id])
+  text             String
+  replies          Comment[]         @relation("CommentToComment")
+  parentId         String?
+  parent           Comment?          @relation("CommentToComment", fields: [parentId], references: [id])
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  commentProfile   CommentProfile?
+  commentTablature CommentTablature?
+}
+
+model CommentProfile {
+  commentId String   @unique
+  profileId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  comment Comment @relation(fields: [commentId], references: [id])
+  profile Profile @relation(fields: [profileId], references: [id])
+
+  @@id([commentId, profileId])
+}
+
+model CommentTablature {
+  commentId   String   @unique
+  tablatureId String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  comment   Comment   @relation(fields: [commentId], references: [id])
+  tablature Tablature @relation(fields: [tablatureId], references: [id])
+
+  @@id([commentId, tablatureId])
+}
+
+model PlaylistContributor {
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  playlistId String
+  playlist   Playlist @relation(fields: [playlistId], references: [id])
+
+  @@id([userId, playlistId])
+}
+
+model Artist {
+  id        String       @id @default(uuid())
+  office    String
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  songs     SongArtist[]
+  userId    String       @unique
+  user      User         @relation(fields: [userId], references: [id])
+}
+
+model Compositor {
+  id        String           @id @default(uuid())
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  songs     SongCompositor[]
+  userId    String           @unique
+  user      User             @relation(fields: [userId], references: [id])
+}
+
+model Tablature {
+  id        String             @id @default(uuid())
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+  songId    String
+  song      Song               @relation(fields: [songId], references: [id])
+  comments  CommentTablature[]
+}
+
+model Playlist {
+  id           String                @id @default(uuid())
+  name         String
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+  authorId     String
+  author       User                  @relation(fields: [authorId], references: [id])
+  playlistSong PlaylistSong[]
+  contributors PlaylistContributor[]
+}
+
+model PlaylistSong {
+  id         String   @id @default(uuid())
+  playlistId String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  playlist   Playlist @relation(fields: [playlistId], references: [id])
+  songId     String
+  song       Song     @relation(fields: [songId], references: [id])
+}
+
+model Genre {
+  id        String      @id @default(uuid())
+  name      String
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  songGenre SongGenre[]
+}
+
+model SongGenre {
+  songId    String
+  song      Song     @relation(fields: [songId], references: [id])
+  genreId   String
+  genre     Genre    @relation(fields: [genreId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@id([songId, genreId])
+}
