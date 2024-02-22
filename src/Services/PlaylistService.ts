@@ -1,11 +1,11 @@
 import IDatabaseContext, { FindMany } from "../Shared/Context/IDatabaseContext";
 import { Playlist } from "../Application/Entities/Playlist";
-import { User } from "../Application/Entities/User";
 import { PlaylistRepository } from "../Application/Repository/PlaylistRepository";
 import { UserService } from "./UserService";
 import { ContributorAlreadyExists, DoesntHavePermission, PlaylistNotFound, UserNotFound } from "../Shared/Handlers/Errors";
 import { ContributorRepository } from "../Application/Repository/PlaylistContributorRepository";
 import { PlaylistContributor } from "../Application/Entities/PlaylistContributor";
+import { PlaylistPresenterDTO } from "../DTO/PlaylistPresenterDTO";
 
 export class PlaylistService {
   private playlistRepository: PlaylistRepository;
@@ -18,52 +18,77 @@ export class PlaylistService {
     this.userService = new UserService(database);
   }
 
-  public async create(authorId: string, playlist: Playlist): Promise<Playlist> {
+  public async create(playlist: Playlist): Promise<PlaylistPresenterDTO> {
+
     try {
 
-      if(!await this.userService.findById(authorId)) throw new UserNotFound();
+      if(!await this.userService.findById(playlist.authorId)) throw new UserNotFound();
 
       const createPlaylist = await this.playlistRepository.create({
-        authorId: authorId,
         ...playlist,
       });
 
-      return createPlaylist
+      return {
+        id: createPlaylist.id as string,
+        createdAt: createPlaylist.createdAt as Date,
+        name: createPlaylist.name,
+        authorId: createPlaylist.authorId,
+      }
 
     } catch (err) {
       throw err;
     }
+
   }
 
-  public async findById(id: string): Promise<Playlist> {
+  public async findById(id: string): Promise<PlaylistPresenterDTO> {
+
     try {
 
-      return await this.playlistRepository.findUnique({
+      const result =  await this.playlistRepository.findUnique({
         where: {
           id
         }
       })
 
+      return {
+        id: result.id as string,
+        createdAt: result.createdAt as Date,
+        name: result.name,
+        authorId: result.authorId,
+      }
+
     } catch (err) {
       throw err;
     }
+
   }
 
-  public async findManyByAuthorId(authorId: string): Promise<Playlist[]> {
+  public async findManyByAuthorId(authorId: string): Promise<PlaylistPresenterDTO[]> {
+
     try {
 
-      return await this.playlistRepository.findMany({
+      const result = await this.playlistRepository.findMany({
         where: {
           authorId
         }
       })
 
+      return result.map(result => ({
+        id: result.id as string,
+        createdAt: result.createdAt as Date,
+        name: result.name,
+        authorId: result.authorId,
+      }))
+
     } catch (err) {
       throw err;
     }
+
   }
 
   public async checkIsContributor(userId: string, playlistId: string): Promise<boolean> {
+
     try {
 
       const itIsAuthorInPlaylist = await this.playlistRepository.findUnique({
@@ -80,6 +105,7 @@ export class PlaylistService {
     } catch (err) {
       throw err;
     }
+
   }
 
   async findManyContributors(playlistId: string, args: FindMany<PlaylistContributor>): Promise<PlaylistContributor[]> {
@@ -107,14 +133,16 @@ export class PlaylistService {
 
   }
   
-  public async addContributor(authorId: string, targetId: string, playlistId: string): Promise<any> {
+  public async addContributor(authorId: string, targetId: string, playlistId: string): Promise<PlaylistContributor> {
+
     try {
 
       if(!await this.findById(playlistId)) throw new PlaylistNotFound();
 
-      const hasPermission = await this.userService.hasPermission(authorId, 'modify_contributors');
-
-      if(!hasPermission && !await this.checkIsContributor(authorId, playlistId)) throw new DoesntHavePermission();
+      if(
+        !await this.userService.hasPermission(authorId, 'modify_contributors') &&
+        !await this.checkIsContributor(authorId, playlistId)
+      ) throw new DoesntHavePermission();
 
       if(!await this.userService.findById(targetId)) throw new UserNotFound();
 
@@ -132,13 +160,15 @@ export class PlaylistService {
   }
 
   public async removeContributor(authorId: string, targetId: string, playlistId: string): Promise<PlaylistContributor> {
+
     try {
 
       if(!await this.findById(playlistId)) throw new PlaylistNotFound();
 
-      const hasPermission = await this.userService.hasPermission(authorId, 'modify_contributors');
-
-      if(!hasPermission && !await this.checkIsContributor(authorId, playlistId)) throw new DoesntHavePermission();
+      if(
+        !await this.userService.hasPermission(authorId, 'modify_contributors') &&
+        !await this.checkIsContributor(authorId, playlistId)
+      ) throw new DoesntHavePermission();
 
       if(!await this.userService.findById(targetId)) throw new UserNotFound();
 
@@ -147,9 +177,47 @@ export class PlaylistService {
       if(!targetContributor) throw new UserNotFound();
 
       return await this.contributorRepository.delete({ 
-        userId: targetContributor.userId as string, 
-        playlistId: targetContributor.playlistId as string 
+        where: {
+          userId: targetContributor.userId as string, 
+          playlistId: targetContributor.playlistId as string 
+        }
       })
+
+    } catch (err) {
+      throw err;
+    }
+
+  }
+
+  public async delete(authorId: string, playlistId: string): Promise<PlaylistPresenterDTO>{
+
+    try {
+
+      if(!await this.findById(playlistId)) throw new PlaylistNotFound();
+
+      if(
+        !await this.userService.hasPermission(authorId, 'modify_contributors') &&
+        !await this.checkIsContributor(authorId, playlistId)
+      ) throw new DoesntHavePermission();
+
+      await this.contributorRepository.delete({ 
+        where: {
+          playlistId: playlistId
+        }
+      })
+
+      const result = await this.playlistRepository.delete({ 
+        where: {
+          id: playlistId
+        }
+      });
+
+      return {
+        id: result.id as string,
+        createdAt: result.createdAt as Date,
+        name: result.name,
+        authorId: result.authorId,
+      }
 
     } catch (err) {
       throw err;

@@ -1,10 +1,10 @@
-import IDatabaseContext, { FindMany, FindUnique } from "../../Shared/Context/IDatabaseContext";
+import IDatabaseContext, { Delete, FindMany, FindUnique } from "../../Shared/Context/IDatabaseContext";
 import { Song } from "../Entities/Song";
 import { v4 as uuidv4 } from 'uuid';
 
 export class SongRepository{
 
-  private TABLE_NAME: string = "Profile";
+  private TABLE_NAME: string = "Song";
 
   constructor(
     private database: IDatabaseContext
@@ -48,12 +48,8 @@ export class SongRepository{
     })
   }
 
-  async delete(id: string): Promise<Song>{
-    return await this.database.delete<Song>(this.TABLE_NAME, {
-      where: {
-        id: id
-      }
-    })
+  async delete(args: Delete<Song>): Promise<Song>{
+    return await this.database.delete<Song>(this.TABLE_NAME, args)
   }
 
 }

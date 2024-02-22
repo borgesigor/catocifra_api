@@ -1,4 +1,4 @@
-import IDatabaseContext, { FindMany, FindUnique } from "../../Shared/Context/IDatabaseContext";
+import IDatabaseContext, { Delete, FindMany, FindUnique } from "../../Shared/Context/IDatabaseContext";
 import { PlaylistContributor } from "../Entities/PlaylistContributor";
 
 export class ContributorRepository{
@@ -36,13 +36,8 @@ export class ContributorRepository{
 
   // without update because one contributor never be updated, only deleted
 
-  async delete(args: PlaylistContributor): Promise<PlaylistContributor>{
-    return await this.database.delete<PlaylistContributor>(this.TABLE_NAME, {
-      where: {
-        playlistId: args.playlistId,
-        userId: args.userId
-      }
-    })
+  async delete(args: Delete<PlaylistContributor>): Promise<PlaylistContributor>{
+    return await this.database.delete<PlaylistContributor>(this.TABLE_NAME, args)
   }
 
 }

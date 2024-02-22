@@ -6,5 +6,4 @@ export interface User {
   username: string;
   createdAt?: Date;
   updatedAt?: Date;
-  permission?: string[];
 }

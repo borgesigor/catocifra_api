@@ -1,44 +1,33 @@
 import { UserRepository } from '../Application/Repository/UserRepository';
 import { User } from '../Application/Entities/User';
-import { DoesntHavePermission, EmailAlreadyCadastred, InvalidEmail, InvalidPassword, UnexpectedError, UserNotFound } from "../Shared/Handlers/Errors";
+import { AlreadyHasPermission, DoesntHavePermission, EmailAlreadyCadastred, InvalidEmail, InvalidPassword, InvalidUsername, UnexpectedError, UserNotFound, UsernameAlreadyCadastred } from "../Shared/Handlers/Errors";
 import IDatabaseContext, { FindMany } from '../Shared/Context/IDatabaseContext';
-import { isEmailValid, isPasswordValid } from '../Shared/Utils/Validators';
-import { Profile } from '../Application/Entities/Profile';
+import { isEmailValid, isPasswordValid, isUsernameValid } from '../Shared/Utils/Validators';
 import { UserPresenterDTO } from '../DTO/UserPresenterDTO';
+import { ACLRepository } from '../Application/Repository/ACLRepository';
+import { ACL } from '../Application/Entities/ACL';
 
 export class UserService{
   private userRepository: UserRepository;
+  private aclRepository: ACLRepository;
 
   constructor(database: IDatabaseContext){
     this.userRepository = new UserRepository(database)
-  }
-
-  async hasPermission(userId: string, permissionName: string): Promise<boolean>{
-    try {
-      
-      const user = await this.userRepository.findUnique({
-        where: {
-          id: userId
-        }
-      })
-
-      if(!user) throw new UserNotFound()
-
-      return user.permission?.includes(permissionName) as boolean
-
-    } catch (err) {
-      throw err
-    }
+    this.aclRepository = new ACLRepository(database)
   }
 
   async register(data: User): Promise<UserPresenterDTO>{
     try {
 
       if(!isEmailValid(data.email)) throw new InvalidEmail();
-
+      
       if(!isPasswordValid(data.password)) throw new InvalidPassword();
+
+      if(!isUsernameValid(data.username)) throw new InvalidUsername();
       
       if(await this.findByEmail(data.email)) throw new EmailAlreadyCadastred();
+      
+      if(await this.findByUsername(data.username)) throw new UsernameAlreadyCadastred();
 
       const result = await this.userRepository.create(data)
 
@@ -156,39 +145,6 @@ export class UserService{
     }
   }
 
-  async updatePermission(authorId: string, targetId: string, newPermission: string[]): Promise<UserPresenterDTO>{
-    try {
-
-      const checkHasPermission = await this.hasPermission(authorId, 'update_user_permission')
-
-      if(!checkHasPermission) throw new DoesntHavePermission()
-
-      const user = await this.userRepository.findUnique({
-        where: {
-          id: targetId
-        }
-      })
-
-      if(!user) throw new UserNotFound()
-
-      const result = await this.userRepository.update({
-        ...user,
-        permission: newPermission
-      }, targetId)
-
-      return {
-        id: result.id as string,
-        createdAt: result.createdAt as Date,
-        username: result.username,
-        email: result.email,
-        name: result.name,
-      }
-
-    } catch (err) {
-      throw err
-    }
-  }
-
   async updatePassword(authorId: string, targetId: string, newPassword: string): Promise<UserPresenterDTO>{
     try {
 
@@ -228,7 +184,7 @@ export class UserService{
   async updateEmail(authorId: string, targetId: string, newEmail: string): Promise<UserPresenterDTO>{
     try {
 
-      const checkHasPermission = await this.hasPermission(authorId, 'update_user_password')
+      const checkHasPermission = await this.hasPermission(authorId, 'update_user_email')
       const checkIsSelf = authorId == targetId
 
       if(!checkHasPermission && !checkIsSelf) throw new DoesntHavePermission()
@@ -266,7 +222,7 @@ export class UserService{
   async updateName(authorId: string, targetId: string, newName: string): Promise<UserPresenterDTO>{
     try {
 
-      const checkHasPermission = await this.hasPermission(authorId, 'update_user_password')
+      const checkHasPermission = await this.hasPermission(authorId, 'update_user_name')
       const checkIsSelf = authorId == targetId
 
       if(!checkHasPermission && !checkIsSelf) throw new DoesntHavePermission()
@@ -300,14 +256,24 @@ export class UserService{
   async delete(authorId: string, targetId: string): Promise<UserPresenterDTO>{
     try {
 
-      const checkPermission = await this.hasPermission(authorId, 'delete_users')
+      const checkPermission = await this.hasPermission(authorId, 'delete_user')
       const checkIsSelf = authorId == targetId
 
       if(!checkPermission && !checkIsSelf) throw new DoesntHavePermission()
       
       if(!await this.findById(targetId)) throw new UserNotFound()
 
-      const result = await this.userRepository.delete(targetId)
+      await this.aclRepository.delete({
+        where: {
+          userId: targetId
+        }
+      })
+
+      const result = await this.userRepository.delete({
+        where: {
+          id: targetId
+        }
+      })
 
       return {
         id: result.id as string,
@@ -322,32 +288,76 @@ export class UserService{
     }
   }
 
-  // private async createProfile(bio: string, userId: string): Promise<Profile>{
-  //   try {
+  async hasPermission(userId: string, permissionName: string): Promise<boolean>{
+    try {
+      
+      if(!await this.findById(userId)) throw new UserNotFound()
 
-  //     const user = await this.getById(userId)
+      const result = await this.aclRepository.findUnique({
+        where: {
+          userId: userId
+        }
+      })
 
-  //     if(!await this.getById(userId)) throw new UserNotFound()
+      if(result && result.permission.includes(permissionName)) return true
 
-  //     const createAvatar = new MediaService(this.database)
+      return false
 
-  //     http.get(`https://api.dicebear.com/7.x/identicon/png?seed=${user.name}&scale=50`, (res) =>{
-  //       res.pipe(createAvatar.save())
-  //     })
+    } catch (err) {
+      throw err
+    }
+  }
 
-  //     const data: Profile = { 
-  //       bio: bio,
-  //       userId: userId,
-  //       profileImageId: createAvatar.getUUID(),
-  //       coverImageId: ''
-  //     }
+  async addPermission(authorId: string, targetId: string, permissionName: string): Promise<ACL>{
+    try {
 
-  //     const profile: Profile = await this.profileRepository.create(data)
+      // check if author has permission to add permission
+      if(!await this.hasPermission(authorId, "add_permission")) throw new DoesntHavePermission();
 
-  //     return profile
-  //   } catch (err) {
-  //     throw err
-  //   }
-  // }
+      if(await this.hasPermission(targetId, permissionName)) throw new AlreadyHasPermission();
+
+      const getPermissions = await this.aclRepository.findUnique({ where: { userId: targetId } })
+
+      if(!getPermissions){
+        return await this.aclRepository.create({ userId: targetId, permission: [permissionName] })
+      }
+
+      return await this.aclRepository.update({ 
+        userId: targetId, 
+        permission: getPermissions.permission ? [...getPermissions.permission, permissionName] : [permissionName]
+      }, targetId)
+
+    } catch (err) {
+      throw err
+    }
+  }
+
+  async removePermission(authorId: string, targetId: string, permissionName: string): Promise<ACL>{
+    try {
+
+      if(!await this.hasPermission(authorId, "add_permission")) throw new DoesntHavePermission();
+
+      if(!await this.hasPermission(targetId, permissionName)) throw new DoesntHavePermission();
+
+      const getPermissions = await this.aclRepository.findUnique({ 
+        where: { userId: targetId } 
+      })
+
+      if(!getPermissions){
+        return await this.aclRepository.create({ 
+          userId: targetId, 
+          permission: [permissionName] 
+        })
+      }
+
+      return await this.aclRepository.update({ 
+        userId: targetId, 
+        permission: getPermissions.permission ? [...getPermissions.permission, permissionName] : [permissionName]
+      }, targetId)
+
+    } catch (err) {
+      throw err
+    }
+  }
 
 }

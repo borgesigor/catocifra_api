@@ -1,5 +1,5 @@
 import { User } from "../Entities/User";
-import IDatabaseContext, { FindMany, FindUnique } from "../../Shared/Context/IDatabaseContext";
+import IDatabaseContext, { Delete, FindMany, FindUnique } from "../../Shared/Context/IDatabaseContext";
 import { v4 as uuidv4 } from 'uuid';
 
 export class UserRepository{
@@ -14,7 +14,6 @@ export class UserRepository{
     return await this.database.create<User>(this.TABLE_NAME, {
       data: {
         ...data,
-        permission: [''],
         id: uuidv4(),
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -49,11 +48,7 @@ export class UserRepository{
     })
   }
 
-  async delete(id: string): Promise<User>{
-    return await this.database.delete<User>(this.TABLE_NAME, {
-      where: {
-        id: id
-      }
-    })
+  async delete(args: Delete<User>): Promise<User>{
+    return await this.database.delete<User>(this.TABLE_NAME, args)
   }
 }

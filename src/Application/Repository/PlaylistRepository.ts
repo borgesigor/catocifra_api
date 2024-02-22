@@ -1,5 +1,5 @@
 import { Playlist } from "../Entities/Playlist";
-import IDatabaseContext, { FindMany, FindUnique } from "../../Shared/Context/IDatabaseContext";
+import IDatabaseContext, { Delete, FindMany, FindUnique } from "../../Shared/Context/IDatabaseContext";
 import { v4 as uuidv4 } from 'uuid';
 
 export class PlaylistRepository{
@@ -49,11 +49,7 @@ export class PlaylistRepository{
     })
   }
 
-  async delete(id: string): Promise<Playlist>{
-    return await this.database.delete<Playlist>(this.TABLE_NAME, {
-      where: {
-        id: id
-      }
-    })
+  async delete(args: Delete<Playlist>): Promise<Playlist>{
+    return await this.database.delete<Playlist>(this.TABLE_NAME, args)
   }
 }

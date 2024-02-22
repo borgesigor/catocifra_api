@@ -119,6 +119,21 @@ export class InvalidPassword extends Error{
   }
 }
 
+export class InvalidUsername extends Error{
+  private fullMessage: object
+  private httpErrorCode: number
+
+  constructor(){
+    super("Username inválido.")
+    this.name = "INVALID_USERNAME"
+    this.fullMessage = {
+      name: this.name,
+      message: this.message
+    }
+    this.httpErrorCode = 422
+  }
+}
+
 export class UserNotFound extends Error{
   private fullMessage: object
   private httpErrorCode: number
@@ -161,6 +176,21 @@ export class DoesntHavePermission extends Error{
       message: this.message
     }
     this.httpErrorCode = 403
+  }
+}
+
+export class AlreadyHasPermission extends Error{
+  private fullMessage: object
+  private httpErrorCode: number
+
+  constructor(){
+    super("Esse usuário já tem essa permissão.")
+    this.name = "ALREADY_HAS_PERMISSION"
+    this.fullMessage = {
+      name: this.name,
+      message: this.message
+    }
+    this.httpErrorCode = 409
   }
 }
 
@@ -221,5 +251,20 @@ export class PlaylistNotFound extends Error{
       message: this.message
     }
     this.httpErrorCode = 404
+  }
+}
+
+export class UsernameAlreadyCadastred extends Error{
+  private fullMessage: object
+  private httpErrorCode: number
+
+  constructor(){
+    super("Esse username já está cadastrado.")
+    this.name = "USERNAME_ALREADY_CADASTRED"
+    this.fullMessage = {
+      name: this.name,
+      message: this.message
+    }
+    this.httpErrorCode = 409
   }
 }

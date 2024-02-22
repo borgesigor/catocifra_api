@@ -23,7 +23,6 @@ model Media {
 model User {
   id           String                @id @default(uuid())
   name         String
-  surname      String
   email        String                @unique
   password     String
   username     String                @unique
@@ -32,12 +31,21 @@ model User {
   artist       Artist?
   compositor   Compositor?
   contributor  PlaylistContributor[]
-  permission   String[]
   comment      Comment[]
   profile      Profile?
   authorFollow Follow[]              @relation(name: "AuthorFollowProfile")
   following    Follow[]              @relation(name: "FollowingProfile")
   playlist     Playlist[]
+  acl          ACL[]
+}
+
+model ACL{
+  id        String           @id @default(uuid())
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  userId    String           @unique
+  user      User             @relation(fields: [userId], references: [id])
+  permission String[]
 }
 
 model Follow {

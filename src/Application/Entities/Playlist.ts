@@ -3,5 +3,5 @@ export interface Playlist {
   name: string;
   createdAt?: Date;
   updatedAt?: Date;
-  authorId?: string;
+  authorId: string;
 }

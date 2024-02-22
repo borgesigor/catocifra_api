@@ -9,3 +9,8 @@ export function isPasswordValid(password: string): boolean{
   const check: PasswordCheckStrength = new PasswordCheckService().checkPasswordStrength(password)  
   return (check == 2 || check == 3 || check == 4) ? true : false
 }
+
+export function isUsernameValid(username: string): boolean{
+  var usernameFormat = "^[a-zA-Z0-9_\.\-]*$";
+  return (username !== '' && username.match(usernameFormat)) ? true : false
+}
