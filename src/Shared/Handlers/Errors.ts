@@ -44,6 +44,21 @@ export class NotFound extends Error{
   }
 }
 
+export class InvalidToken extends Error{
+  private fullMessage: object
+  private httpErrorCode: number = 401;
+
+  constructor(){
+    super("Token inválido")
+    this.name = "INVALID_TOKEN"
+    this.fullMessage = {
+      name: this.name,
+      message: this.message
+    }
+    this.httpErrorCode = 401
+  }
+}
+
 export class InvalidArgument extends Error{
   private fullMessage: object
   private httpErrorCode: number = 422;
@@ -164,13 +179,13 @@ export class InvalidFileType extends Error{
   }
 }
 
-export class DoesntHavePermission extends Error{
+export class AuthorDoesntHavePermission extends Error{
   private fullMessage: object
   private httpErrorCode: number
 
   constructor(){
-    super("Você não tem permissão para fazer isso.")
-    this.name = "DOESNT_HAVE_PERMISSION"
+    super("Autor não tem permissão.")
+    this.name = "AUTHOR_DOESNT_HAVE_PERMISSION"
     this.fullMessage = {
       name: this.name,
       message: this.message
@@ -179,13 +194,28 @@ export class DoesntHavePermission extends Error{
   }
 }
 
-export class AlreadyHasPermission extends Error{
+export class UserAlreadyHasPermission extends Error{
   private fullMessage: object
   private httpErrorCode: number
 
   constructor(){
     super("Esse usuário já tem essa permissão.")
     this.name = "ALREADY_HAS_PERMISSION"
+    this.fullMessage = {
+      name: this.name,
+      message: this.message
+    }
+    this.httpErrorCode = 409
+  }
+}
+
+export class UserDoesntHavePermission extends Error{
+  private fullMessage: object
+  private httpErrorCode: number
+
+  constructor(){
+    super("Esse usuário não tem essa permissão.")
+    this.name = "DOESNT_HAVE_PERMISSION"
     this.fullMessage = {
       name: this.name,
       message: this.message
@@ -266,5 +296,35 @@ export class UsernameAlreadyCadastred extends Error{
       message: this.message
     }
     this.httpErrorCode = 409
+  }
+}
+
+export class PermissionNotFound extends Error{
+  private fullMessage: object
+  private httpErrorCode: number
+
+  constructor(){
+    super("Permissão não encontrada.")
+    this.name = "PERMISSION_NOT_FOUND"
+    this.fullMessage = {
+      name: this.name,
+      message: this.message
+    }
+    this.httpErrorCode = 404
+  }
+}
+
+export class WrongCredentials extends Error{
+  private fullMessage: object
+  private httpErrorCode: number
+
+  constructor(){
+    super("Credenciais erradas.")
+    this.name = "WRONG_CREDENTIALS"
+    this.fullMessage = {
+      name: this.name,
+      message: this.message
+    }
+    this.httpErrorCode = 401
   }
 }
