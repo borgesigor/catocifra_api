@@ -4,7 +4,7 @@ import { PermissionRepository } from "../Application/Repository/PermissionReposi
 import { PermissionUserRepository } from "../Application/Repository/PermissionUserRepository";
 import IDatabaseContext from "../Shared/Context/IDatabaseContext";
 import { AuthorDoesntHavePermission, PermissionNotFound, UserAlreadyHasPermission, UserDoesntHavePermission } from "../Shared/Handlers/Errors";
-import { TokenService } from "./TokenService";
+import { AuthService } from "./AuthService";
 
 export enum ServicePermissions{
   'CREATE_USER',
@@ -23,12 +23,12 @@ export class PermissionService{
 
   private permissionRepository: PermissionRepository;
   private permissionUserRepository: PermissionUserRepository;
-  private tokenService: TokenService;
+  private authService: AuthService;
 
   constructor(database: IDatabaseContext){
     this.permissionRepository = new PermissionRepository(database)
     this.permissionUserRepository = new PermissionUserRepository(database)
-    this.tokenService = new TokenService()
+    this.authService = new AuthService(database)
   }
 
   async getPermissionByPermissionName(permission: ServicePermissions): Promise<Permission>{
@@ -108,7 +108,7 @@ export class PermissionService{
 
   async isSelf(authorToken: string, targetId: string): Promise<boolean>{
 
-    const decodedAuthorToken = this.tokenService.decode(authorToken)
+    const decodedAuthorToken = await this.authService.decodeToken(authorToken);
 
     if(decodedAuthorToken.id !== targetId) return false;
 

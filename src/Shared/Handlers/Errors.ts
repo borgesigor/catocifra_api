@@ -328,3 +328,18 @@ export class WrongCredentials extends Error{
     this.httpErrorCode = 401
   }
 }
+
+export class UserAlreadyExists extends Error{
+  private fullMessage: object
+  private httpErrorCode: number
+
+  constructor(){
+    super("Usuário já existe.")
+    this.name = "USER_ALREADY_EXISTS"
+    this.fullMessage = {
+      name: this.name,
+      message: this.message
+    }
+    this.httpErrorCode = 409
+  }
+}
