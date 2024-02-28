@@ -14,35 +14,7 @@ export class UnexpectedError extends Error{
   }
 }
 
-export class MissingArguments extends Error{
-  private fullMessage: object
-  private httpErrorCode: number
-
-  constructor(args: string){
-    super("Estão faltando argumentos: "+ args)
-    this.name = "MISSING_ARGUMENTS"
-    this.fullMessage = {
-      name: this.name,
-      message: this.message
-    }
-    this.httpErrorCode = 400
-  }
-}
-
-export class NotFound extends Error{
-  private fullMessage: object
-  private httpErrorCode: number
-
-  constructor(){
-    super("Não foi encontrado nenhum resultado.")
-    this.name = "NOT_FOUND"
-    this.fullMessage = {
-      name: this.name,
-      message: this.message
-    }
-    this.httpErrorCode = 404
-  }
-}
+// Invalid Data Errors
 
 export class InvalidToken extends Error{
   private fullMessage: object
@@ -59,57 +31,12 @@ export class InvalidToken extends Error{
   }
 }
 
-export class InvalidArgument extends Error{
-  private fullMessage: object
-  private httpErrorCode: number = 422;
-
-  constructor(args: string){
-    super("Argumento inválido: "+ args)
-    this.name = "INVALID_ARGUMENT"
-    this.fullMessage = {
-      name: this.name,
-      message: this.message
-    }
-    this.httpErrorCode = 422
-  }
-}
-
-export class AlreadyExists extends Error{
-  private fullMessage: object
-  private httpErrorCode: number
-
-  constructor(){
-    super("Isso já existe.")
-    this.name = "ALREADY_EXISTS"
-    this.fullMessage = {
-      name: this.name,
-      message: this.message
-    }
-    this.httpErrorCode = 409
-  }
-}
-
-export class EmailAlreadyCadastred extends Error{
-  private fullMessage: object
-  private httpErrorCode: number
-
-  constructor(){
-    super("Esse email já está cadastrado.")
-    this.name = "EMAIL_ALREADY_CADASTRED"
-    this.fullMessage = {
-      name: this.name,
-      message: this.message
-    }
-    this.httpErrorCode = 409
-  }
-}
-
 export class InvalidEmail extends Error{
   private fullMessage: object
   private httpErrorCode: number
 
-  constructor(){
-    super("Email inválido.")
+  constructor(msg: string){
+    super("Email inválido: "+ msg)
     this.name = "INVALID_EMAIL"
     this.fullMessage = {
       name: this.name,
@@ -124,7 +51,7 @@ export class InvalidPassword extends Error{
   private httpErrorCode: number
 
   constructor(){
-    super("Senha inválida.")
+    super("Senha inválida")
     this.name = "INVALID_PASSWORD"
     this.fullMessage = {
       name: this.name,
@@ -138,8 +65,8 @@ export class InvalidUsername extends Error{
   private fullMessage: object
   private httpErrorCode: number
 
-  constructor(){
-    super("Username inválido.")
+  constructor(msg: string){
+    super("Username inválido: " + msg)
     this.name = "INVALID_USERNAME"
     this.fullMessage = {
       name: this.name,
@@ -149,27 +76,12 @@ export class InvalidUsername extends Error{
   }
 }
 
-export class UserNotFound extends Error{
-  private fullMessage: object
-  private httpErrorCode: number
-
-  constructor(){
-    super("Usuário não encontrado.")
-    this.name = "USER_NOT_FOUND"
-    this.fullMessage = {
-      name: this.name,
-      message: this.message
-    }
-    this.httpErrorCode = 404
-  }
-}
-
 export class InvalidFileType extends Error{
   private fullMessage: object
   private httpErrorCode: number
 
-  constructor(){
-    super("Tipo de arquivo inválido.")
+  constructor(msg: string){
+    super("Tipo de arquivo inválido: " + msg)
     this.name = "INVALID_FILE_TYPE"
     this.fullMessage = {
       name: this.name,
@@ -179,12 +91,29 @@ export class InvalidFileType extends Error{
   }
 }
 
+// Unauthorized Errors
+
+export class WrongCredentials extends Error{
+  private fullMessage: object
+  private httpErrorCode: number
+
+  constructor(){
+    super("Credenciais erradas.")
+    this.name = "WRONG_CREDENTIALS"
+    this.fullMessage = {
+      name: this.name,
+      message: this.message
+    }
+    this.httpErrorCode = 401
+  }
+}
+
 export class AuthorDoesntHavePermission extends Error{
   private fullMessage: object
   private httpErrorCode: number
 
   constructor(){
-    super("Autor não tem permissão.")
+    super("Autor não tem permissão")
     this.name = "AUTHOR_DOESNT_HAVE_PERMISSION"
     this.fullMessage = {
       name: this.name,
@@ -194,35 +123,7 @@ export class AuthorDoesntHavePermission extends Error{
   }
 }
 
-export class UserAlreadyHasPermission extends Error{
-  private fullMessage: object
-  private httpErrorCode: number
-
-  constructor(){
-    super("Esse usuário já tem essa permissão.")
-    this.name = "ALREADY_HAS_PERMISSION"
-    this.fullMessage = {
-      name: this.name,
-      message: this.message
-    }
-    this.httpErrorCode = 409
-  }
-}
-
-export class UserDoesntHavePermission extends Error{
-  private fullMessage: object
-  private httpErrorCode: number
-
-  constructor(){
-    super("Esse usuário não tem essa permissão.")
-    this.name = "DOESNT_HAVE_PERMISSION"
-    this.fullMessage = {
-      name: this.name,
-      message: this.message
-    }
-    this.httpErrorCode = 409
-  }
-}
+// Already Exists Errors
 
 export class ContributorAlreadyExists extends Error{
   private fullMessage: object
@@ -239,13 +140,60 @@ export class ContributorAlreadyExists extends Error{
   }
 }
 
-export class ContributorNotFound extends Error{
+export class UserAlreadyExists extends Error{
   private fullMessage: object
   private httpErrorCode: number
 
   constructor(){
-    super("Contribuidor não encontrado.")
-    this.name = "CONTRIBUTOR_NOT_FOUND"
+    super("Usuário já existe.")
+    this.name = "USER_ALREADY_EXISTS"
+    this.fullMessage = {
+      name: this.name,
+      message: this.message
+    }
+    this.httpErrorCode = 409
+  }
+}
+
+export class UsernameAlreadyExists extends Error{
+  private fullMessage: object
+  private httpErrorCode: number
+
+  constructor(msg: string){
+    super("Esse username já está cadastrado: "+ msg)
+    this.name = "USERNAME_ALREADY_CADASTRED"
+    this.fullMessage = {
+      name: this.name,
+      message: this.message
+    }
+    this.httpErrorCode = 409
+  }
+}
+
+export class EmailAlreadyExists extends Error{
+  private fullMessage: object
+  private httpErrorCode: number
+
+  constructor(msg: string){
+    super("Esse email já está cadastrado: "+ msg)
+    this.name = "EMAIL_ALREADY_CADASTRED"
+    this.fullMessage = {
+      name: this.name,
+      message: this.message
+    }
+    this.httpErrorCode = 409
+  }
+}
+
+// Not Found Errors
+
+export class UserNotFound extends Error{
+  private fullMessage: object
+  private httpErrorCode: number
+
+  constructor(){
+    super("Usuário não encontrado")
+    this.name = "USER_NOT_FOUND"
     this.fullMessage = {
       name: this.name,
       message: this.message
@@ -254,18 +202,18 @@ export class ContributorNotFound extends Error{
   }
 }
 
-export class ContributorMustHaveAPlaylistOrTablatureID extends Error{
+export class PermissionNotFound extends Error{
   private fullMessage: object
   private httpErrorCode: number
 
   constructor(){
-    super("Contribuidor deve ter uma playlist ou uma tablatura.")
-    this.name = "CONTRIBUTOR_MUST_HAVE_A_PLAYLIST_OR_TABLATURE_ID"
+    super("Permissão não encontrada")
+    this.name = "PERMISSION_NOT_FOUND"
     this.fullMessage = {
       name: this.name,
       message: this.message
     }
-    this.httpErrorCode = 422
+    this.httpErrorCode = 404
   }
 }
 
@@ -284,62 +232,17 @@ export class PlaylistNotFound extends Error{
   }
 }
 
-export class UsernameAlreadyCadastred extends Error{
+export class ContributorNotFound extends Error{
   private fullMessage: object
   private httpErrorCode: number
 
   constructor(){
-    super("Esse username já está cadastrado.")
-    this.name = "USERNAME_ALREADY_CADASTRED"
-    this.fullMessage = {
-      name: this.name,
-      message: this.message
-    }
-    this.httpErrorCode = 409
-  }
-}
-
-export class PermissionNotFound extends Error{
-  private fullMessage: object
-  private httpErrorCode: number
-
-  constructor(){
-    super("Permissão não encontrada.")
-    this.name = "PERMISSION_NOT_FOUND"
+    super("Contribuidor não encontrado.")
+    this.name = "CONTRIBUTOR_NOT_FOUND"
     this.fullMessage = {
       name: this.name,
       message: this.message
     }
     this.httpErrorCode = 404
-  }
-}
-
-export class WrongCredentials extends Error{
-  private fullMessage: object
-  private httpErrorCode: number
-
-  constructor(){
-    super("Credenciais erradas.")
-    this.name = "WRONG_CREDENTIALS"
-    this.fullMessage = {
-      name: this.name,
-      message: this.message
-    }
-    this.httpErrorCode = 401
-  }
-}
-
-export class UserAlreadyExists extends Error{
-  private fullMessage: object
-  private httpErrorCode: number
-
-  constructor(){
-    super("Usuário já existe.")
-    this.name = "USER_ALREADY_EXISTS"
-    this.fullMessage = {
-      name: this.name,
-      message: this.message
-    }
-    this.httpErrorCode = 409
   }
 }

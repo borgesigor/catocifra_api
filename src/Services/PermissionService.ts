@@ -1,10 +1,10 @@
+import IDatabaseContext from "../Shared/Context/IDatabaseContext";
 import { Permission } from "../Application/Entities/Permission";
 import { PermissionUser } from "../Application/Entities/PermissionUser";
 import { PermissionRepository } from "../Application/Repository/PermissionRepository";
 import { PermissionUserRepository } from "../Application/Repository/PermissionUserRepository";
-import IDatabaseContext from "../Shared/Context/IDatabaseContext";
-import { AuthorDoesntHavePermission, PermissionNotFound, UserAlreadyHasPermission, UserDoesntHavePermission } from "../Shared/Handlers/Errors";
-import { AuthService } from "./AuthService";
+import { AuthorDoesntHavePermission, PermissionNotFound, UserAlreadyDoesntHavePermission, UserAlreadyHasPermission, UserDoesntHaveAnyPermission } from "../Shared/Handlers/Errors";
+import { AuthService } from "./TokenService";
 
 export enum ServicePermissions{
   'CREATE_USER',
@@ -13,10 +13,7 @@ export enum ServicePermissions{
   'DELETE_USER',
   'READ_USER_PERMISSIONS',
   'UPDATE_USER_PERMISSIONS',
-  'CREATE_PLAYLIST',
-  'READ_PLAYLIST',
-  'UPDATE_PLAYLIST',
-  'DELETE_PLAYLIST',
+  'READ_ALL_PLAYLIST'
 }
 
 export class PermissionService{
@@ -31,7 +28,7 @@ export class PermissionService{
     this.authService = new AuthService(database)
   }
 
-  async getPermissionByPermissionName(permission: ServicePermissions): Promise<Permission>{
+  public async getPermissionByPermissionName(permission: ServicePermissions): Promise<Permission>{
     return await this.permissionRepository.findUnique({
       where: {
         name: ServicePermissions[permission]
@@ -39,14 +36,27 @@ export class PermissionService{
     })
   }
 
-  async hasPermission(userId: string, permission: ServicePermissions): Promise<boolean>{
+  private async getPermissionIdByName(permission: ServicePermissions): Promise<string> {
+    const permissionEntity = await this.getPermissionByPermissionName(permission);
+    return permissionEntity.id;
+  }
+
+  public async permissionMiddleware(token: string, permission: ServicePermissions): Promise<void>{
+
+    if(!await this.hasPermission(token, permission)) throw new AuthorDoesntHavePermission();
+
+  }
+
+  public async hasPermission(token: string, permission: ServicePermissions): Promise<boolean>{
+
+    const userId = this.authService.getIdFromToken(token)
 
     if (!await this.getPermissionByPermissionName(permission)) throw new PermissionNotFound();
 
     const result = await this.permissionUserRepository.findUnique({
       where: {
-        userId,
-        permissionId: (await this.getPermissionByPermissionName(permission)).id
+        userId: userId,
+        permissionId: await this.getPermissionIdByName(permission)
       }
     })
 
@@ -55,37 +65,52 @@ export class PermissionService{
     }
 
     return false;
+
   }
 
-  async addPermission(userId: string, permission: ServicePermissions): Promise<PermissionUser>{
+  public async addPermission(token: string, permission: ServicePermissions): Promise<PermissionUser>{
 
-    if(!await this.hasPermission(userId, ServicePermissions.READ_USER_PERMISSIONS)) throw new AuthorDoesntHavePermission();
+    const userId = this.authService.getIdFromToken(token)
 
-    if(await this.hasPermission(userId, permission)) throw new UserAlreadyHasPermission();
+    if(!await this.hasPermission(token, ServicePermissions.READ_USER_PERMISSIONS)) throw new AuthorDoesntHavePermission();
+
+    if(await this.hasPermission(token, permission)) throw new UserAlreadyHasPermission();
 
     return await this.permissionUserRepository.create({
       userId,
-      permissionId: (await this.getPermissionByPermissionName(permission)).id,
+      permissionId: await this.getPermissionIdByName(permission)
     })
 
   }
 
-  async removePermission(userId: string, permission: ServicePermissions): Promise<PermissionUser>{
+  public async removePermission(token: string, permission: ServicePermissions): Promise<PermissionUser>{
 
-    if(!await this.hasPermission(userId, ServicePermissions.READ_USER_PERMISSIONS)) throw new AuthorDoesntHavePermission();
+    const userId = this.authService.getIdFromToken(token)
 
-    if(!await this.hasPermission(userId, permission)) throw new UserDoesntHavePermission();
+    if(!await this.hasPermission(token, ServicePermissions.READ_USER_PERMISSIONS)) throw new AuthorDoesntHavePermission();
+
+    if(!await this.hasPermission(token, permission)) throw new UserAlreadyDoesntHavePermission();
 
     return await this.permissionUserRepository.delete({
       where: {
         userId,
-        permissionId: (await this.getPermissionByPermissionName(permission)).id
+        permissionId: await this.getPermissionIdByName(permission)
       }
     })
 
   }
 
-  async getPermissions(userId: string): Promise<Permission[]>{
+  public async getPermissionList(token: string): Promise<Permission[]>{
+
+    if(!await this.hasPermission(token, ServicePermissions.READ_USER_PERMISSIONS)) throw new AuthorDoesntHavePermission();
+
+    return await this.permissionRepository.findMany({});
+
+  }
+
+  public async getUserPermissions(token: string): Promise<Permission[]>{
+
+    const userId = this.authService.getIdFromToken(token)
 
     const getUserPermissions = await this.permissionUserRepository.findMany({
       where: {
@@ -93,26 +118,25 @@ export class PermissionService{
       }
     })
 
-    if(!getUserPermissions.length) throw new UserDoesntHavePermission();
+    if(!(getUserPermissions.length > 0)) throw new UserDoesntHaveAnyPermission();
 
-    const result: unknown = getUserPermissions.map(async (permissionUser: PermissionUser) => {
-      return await this.permissionRepository.findUnique({
-        where: {
-          id: permissionUser.permissionId
-        }
+    const result: Permission[] = await Promise.all(
+      getUserPermissions.map(async (permissionUser: PermissionUser) => {
+        return await this.permissionRepository.findUnique({
+          where: {
+            id: permissionUser.permissionId
+          }
+        });
       })
-    })
+    );
+    
+    return result;
 
-    return result as Promise<Permission[]>;
   }
 
-  async isSelf(authorToken: string, targetId: string): Promise<boolean>{
+  public async isSelf(token: string, targetId: string): Promise<boolean>{
 
-    const decodedAuthorToken = await this.authService.decodeToken(authorToken);
-
-    if(decodedAuthorToken.id !== targetId) return false;
-
-    return true
+    return this.authService.getIdFromToken(token) === targetId;
 
   }
 

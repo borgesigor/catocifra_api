@@ -209,8 +209,15 @@ model Playlist {
   updatedAt    DateTime              @updatedAt
   authorId     String
   author       User                  @relation(fields: [authorId], references: [id])
+  visibility   PlaylistVisibility @default(PUBLIC)
   playlistSong PlaylistSong[]
   contributors PlaylistContributor[]
+}
+
+enum PlaylistVisibility {
+  PUBLIC
+  PRIVATE
+  UNLISTED
 }
 
 model PlaylistSong {

@@ -1,7 +1,8 @@
 export interface Playlist {
-  id?: string;
+  id: string;
   name: string;
-  createdAt?: Date;
-  updatedAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
   authorId: string;
+  visibility: 'PUBLIC' | 'PRIVATE' | 'UNLISTED';
 }

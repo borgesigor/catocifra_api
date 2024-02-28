@@ -1,6 +1,6 @@
 export interface PlaylistContributor {
-  createdAt?: Date;
-  updatedAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
   userId: string;
-  playlistId?: string;
+  playlistId: string;
 }

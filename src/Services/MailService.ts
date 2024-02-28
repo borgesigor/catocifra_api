@@ -98,6 +98,7 @@ export class MailService{
     `
 
     return await this.sendMail(to, 'Reset your password', html)
+    
   }
 
 }
