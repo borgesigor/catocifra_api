@@ -3,22 +3,26 @@ import { AuthorDoesntHavePermission, EmailAlreadyExists, InvalidEmail, InvalidPa
 import { UserPresenterDTO } from '../DTO/UserPresenterDTO';
 import { PermissionService, ServicePermissions } from './PermissionService';
 import { User } from '../Application/Entities/User';
-import { TokenService } from './TokenService';
 import { isEmailValid, isPasswordValid, isUsernameValid } from '../Shared/Helpers/Validators';
+import { getIdFromToken, signToken } from '../Shared/Helpers/Token';
 import IDatabaseContext, { FindMany } from '../Shared/Context/IDatabaseContext';
 import bcrypt from 'bcrypt';
 import dotenv from 'dotenv';
+import { ResetPasswordTokenRepository } from '../Application/Repository/ResetPasswordTokenRepository';
+import { MailService } from './MailService';
 
 export class UserService{
   private userRepository: UserRepository;
   private permissionService: PermissionService;
-  private tokenService: TokenService;
+  private resetPasswordTokenRepository: ResetPasswordTokenRepository;
+  private mailService: MailService
   private PASSWORD_SECRET: string;
 
   constructor(private database: IDatabaseContext) {
     this.userRepository = new UserRepository(database);
     this.permissionService = new PermissionService(database);
-    this.tokenService = new TokenService();
+    this.resetPasswordTokenRepository = new ResetPasswordTokenRepository(database)
+    this.mailService = new MailService()
     this.PASSWORD_SECRET = dotenv.config().parsed?.PASSWORD_SECRET as string;
   }
 
@@ -56,22 +60,22 @@ export class UserService{
     };
   }
 
-  async findById(id: string): Promise<UserPresenterDTO> {
+  public async findById(id: string): Promise<UserPresenterDTO> {
     const user = await this.findUserByCondition({ id });
     return this.mapUserToDTO(user);
   }
   
-  async findByEmail(email: string): Promise<UserPresenterDTO> {
+  public async findByEmail(email: string): Promise<UserPresenterDTO> {
     const user = await this.findUserByCondition({ email });
     return this.mapUserToDTO(user);
   }
   
-  async findByUsername(username: string): Promise<UserPresenterDTO> {
+  public async findByUsername(username: string): Promise<UserPresenterDTO> {
     const user = await this.findUserByCondition({ username });
     return this.mapUserToDTO(user);
   }
   
-  async findMany(token: string, args: FindMany<UserPresenterDTO>): Promise<UserPresenterDTO[]> {
+  public async findMany(token: string, args: FindMany<UserPresenterDTO>): Promise<UserPresenterDTO[]> {
     await this.permissionService.permissionMiddleware(token, ServicePermissions.READ_USER);
   
     const results = await this.userRepository.findMany({
@@ -88,7 +92,7 @@ export class UserService{
     return results.map(result => this.mapUserToDTO(result));
   }
 
-  async update(token: string, data: User): Promise<UserPresenterDTO> {
+  public async update(token: string, data: User): Promise<UserPresenterDTO> {
     const userToUpdate = await this.userRepository.findUnique({ where: { id: data.id } });
   
     if (!userToUpdate) {
@@ -108,7 +112,7 @@ export class UserService{
     return this.mapUserToDTO(updatedUser);
   }
   
-  async delete(token: string, targetId: string): Promise<UserPresenterDTO> {
+  public async delete(token: string, targetId: string): Promise<UserPresenterDTO> {
     const hasPermission = await this.permissionService.isSelf(token, targetId) || await this.permissionService.hasPermission(token, ServicePermissions.DELETE_USER);
   
     if (!hasPermission) {
@@ -137,7 +141,7 @@ export class UserService{
       throw new WrongCredentials();
     }
 
-    const token = this.tokenService.signToken(user.id as string);
+    const token = signToken(user.id as string);
 
     return { 
       token,
@@ -145,7 +149,7 @@ export class UserService{
     };
   }
 
-  public async register(data: User){
+  public async register(data: User): Promise<UserPresenterDTO>{
     this.credentialsCheck(data);
 
     const emailCheck = await this.userRepository.findUnique({ where: { username: data.email }})
@@ -156,7 +160,7 @@ export class UserService{
 
     const passwordHash = await this.generatePasswordHash(data.password)
 
-    return await this.userRepository.create(
+    const user = await this.userRepository.create(
       {
         id: '',
         createdAt: new Date(),
@@ -168,6 +172,21 @@ export class UserService{
       }
     )
 
+    return this.mapUserToDTO(user)
+  }
+
+  public async sendResetPasswordRequest(token: string): Promise<boolean>{
+    const userId = getIdFromToken(token)
+    const user = await this.findById(userId)
+
+    await this.mailService.sendResetPassword(user.email, user.name, token)
+
+    await this.resetPasswordTokenRepository.create({
+      userid: user.id,
+      email: user.email,
+    })
+
+    return true;
   }
 }
 

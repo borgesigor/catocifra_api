@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
+import { UnexpectedError } from '../Shared/Handlers/Errors';
 
 export class MailService{
 
@@ -18,14 +19,14 @@ export class MailService{
       }
     });
 
-    const info = await transporter.sendMail({
+    const sender = await transporter.sendMail({
       from: process.env.MAIL_FROM,
       to: to,
       subject: subject,
       html: html
-    });
+    }).catch(err => new UnexpectedError(err));
 
-    return info
+    return sender
 
   }
 

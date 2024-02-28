@@ -3,8 +3,8 @@ import { Permission } from "../Application/Entities/Permission";
 import { PermissionUser } from "../Application/Entities/PermissionUser";
 import { PermissionRepository } from "../Application/Repository/PermissionRepository";
 import { PermissionUserRepository } from "../Application/Repository/PermissionUserRepository";
-import { AuthorDoesntHavePermission, PermissionNotFound, UserAlreadyDoesntHavePermission, UserAlreadyHasPermission, UserDoesntHaveAnyPermission } from "../Shared/Handlers/Errors";
-import { AuthService } from "./TokenService";
+import { AuthorDoesntHavePermission, PermissionNotFound } from "../Shared/Handlers/Errors";
+import { getIdFromToken } from "../Shared/Helpers/Token";
 
 export enum ServicePermissions{
   'CREATE_USER',
@@ -20,12 +20,10 @@ export class PermissionService{
 
   private permissionRepository: PermissionRepository;
   private permissionUserRepository: PermissionUserRepository;
-  private authService: AuthService;
 
   constructor(database: IDatabaseContext){
     this.permissionRepository = new PermissionRepository(database)
     this.permissionUserRepository = new PermissionUserRepository(database)
-    this.authService = new AuthService(database)
   }
 
   public async getPermissionByPermissionName(permission: ServicePermissions): Promise<Permission>{
@@ -49,7 +47,7 @@ export class PermissionService{
 
   public async hasPermission(token: string, permission: ServicePermissions): Promise<boolean>{
 
-    const userId = this.authService.getIdFromToken(token)
+    const userId = getIdFromToken(token)
 
     if (!await this.getPermissionByPermissionName(permission)) throw new PermissionNotFound();
 
@@ -70,11 +68,11 @@ export class PermissionService{
 
   public async addPermission(token: string, permission: ServicePermissions): Promise<PermissionUser>{
 
-    const userId = this.authService.getIdFromToken(token)
+    const userId = getIdFromToken(token)
 
     if(!await this.hasPermission(token, ServicePermissions.READ_USER_PERMISSIONS)) throw new AuthorDoesntHavePermission();
 
-    if(await this.hasPermission(token, permission)) throw new UserAlreadyHasPermission();
+    // if(await this.hasPermission(token, permission)) throw new UserAlreadyHasPermission();
 
     return await this.permissionUserRepository.create({
       userId,
@@ -85,11 +83,11 @@ export class PermissionService{
 
   public async removePermission(token: string, permission: ServicePermissions): Promise<PermissionUser>{
 
-    const userId = this.authService.getIdFromToken(token)
+    const userId = getIdFromToken(token)
 
     if(!await this.hasPermission(token, ServicePermissions.READ_USER_PERMISSIONS)) throw new AuthorDoesntHavePermission();
 
-    if(!await this.hasPermission(token, permission)) throw new UserAlreadyDoesntHavePermission();
+    // if(!await this.hasPermission(token, permission)) throw new UserAlreadyDoesntHavePermission();
 
     return await this.permissionUserRepository.delete({
       where: {
@@ -110,7 +108,7 @@ export class PermissionService{
 
   public async getUserPermissions(token: string): Promise<Permission[]>{
 
-    const userId = this.authService.getIdFromToken(token)
+    const userId = getIdFromToken(token)
 
     const getUserPermissions = await this.permissionUserRepository.findMany({
       where: {
@@ -118,7 +116,7 @@ export class PermissionService{
       }
     })
 
-    if(!(getUserPermissions.length > 0)) throw new UserDoesntHaveAnyPermission();
+    // if(!(getUserPermissions.length > 0)) throw new UserDoesntHaveAnyPermission();
 
     const result: Permission[] = await Promise.all(
       getUserPermissions.map(async (permissionUser: PermissionUser) => {
@@ -136,7 +134,7 @@ export class PermissionService{
 
   public async isSelf(token: string, targetId: string): Promise<boolean>{
 
-    return this.authService.getIdFromToken(token) === targetId;
+    return getIdFromToken(token) === targetId;
 
   }
 

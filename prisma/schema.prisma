@@ -37,6 +37,7 @@ model User {
   following    Follow[]              @relation(name: "FollowingProfile")
   playlist     Playlist[]
   permission   PermissionUser[]
+  resetToken   ResetPasswordToken[]
 }
 
 model PermissionUser{
@@ -247,4 +248,15 @@ model SongGenre {
   updatedAt DateTime @updatedAt
 
   @@id([songId, genreId])
+}
+
+model ResetPasswordToken {
+  id String @id @default(uuid())
+  token String
+  expiration DateTime
+  userId String
+  user User @relation(fields: [userId], references: [id])
+  email String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
