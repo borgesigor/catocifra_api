@@ -14,6 +14,21 @@ export class UnexpectedError extends Error{
   }
 }
 
+export class PasswordDoesntMatch extends Error{
+  private fullMessage: object
+  private httpErrorCode: number
+
+  constructor(){
+    super("Senha não confere")
+    this.name = "PASSWORD_DOESNT_MATCH"
+    this.fullMessage = {
+      name: this.name,
+      message: this.message
+    }
+    this.httpErrorCode = 401
+  }
+}
+
 // Invalid Data Errors
 
 export class InvalidToken extends Error{

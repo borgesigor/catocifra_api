@@ -1,5 +1,5 @@
 import { UserRepository } from '../Application/Repository/UserRepository';
-import { AuthorDoesntHavePermission, EmailAlreadyExists, InvalidEmail, InvalidPassword, InvalidUsername, UserNotFound, UsernameAlreadyExists, WrongCredentials } from "../Shared/Handlers/Errors";
+import { AuthorDoesntHavePermission, EmailAlreadyExists, InvalidEmail, InvalidPassword, InvalidToken, InvalidUsername, PasswordDoesntMatch, UserNotFound, UsernameAlreadyExists, WrongCredentials } from "../Shared/Handlers/Errors";
 import { UserPresenterDTO } from '../DTO/UserPresenterDTO';
 import { PermissionService, ServicePermissions } from './PermissionService';
 import { User } from '../Application/Entities/User';
@@ -175,7 +175,7 @@ export class UserService{
     return this.mapUserToDTO(user)
   }
 
-  public async sendResetPasswordRequest(token: string): Promise<boolean>{
+  public async sendResetPasswordRequest(token: string): Promise<void>{
     const userId = getIdFromToken(token)
     const user = await this.findById(userId)
 
@@ -185,24 +185,36 @@ export class UserService{
       userid: user.id,
       email: user.email,
     })
+  }
+
+  public async validateResetPasswordRequest(token: string): Promise<boolean>{
+    const getToken = await this.resetPasswordTokenRepository.findUnique({
+      where: {
+        token: token
+      }
+    })
+
+    if(!getToken) throw new InvalidToken();
 
     return true;
   }
+
+  public async updatePassword(token: string, newPassword: string, passwordConfirmation: string): Promise<UserPresenterDTO>{
+    await this.validateResetPasswordRequest(token);
+
+    if(newPassword !== passwordConfirmation) throw new PasswordDoesntMatch();
+
+    const userId = getIdFromToken(token)
+    const user = await this.findById(userId)
+
+    if(!user) throw new UserNotFound()
+
+    const passwordHash = await this.generatePasswordHash(newPassword)
+
+    const updatedUser = await this.userRepository.update({
+      password: passwordHash
+    }, userId)
+
+    return this.mapUserToDTO(updatedUser)
+  }
 }
-
- // reset password
-//  public async updatePassword(token: string, newPassword: string, passwordConfirmation: string){
-
-//  }
-
-//  public async sendResetPasswordRequest(username: string){
-   
-//  }
-
-//  private async createResetPasswordToken(): Promise<string>{
-//    return ""
-//  }
-
-//  private async deleteResetPasswordToken(): Promise<string>{
-//    return ""
-//  }
