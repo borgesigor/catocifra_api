@@ -40,13 +40,10 @@ export class PermissionService{
   }
 
   public async permissionMiddleware(token: string, permission: ServicePermissions): Promise<void>{
-
     if(!await this.hasPermission(token, permission)) throw new AuthorDoesntHavePermission();
-
   }
 
   public async hasPermission(token: string, permission: ServicePermissions): Promise<boolean>{
-
     const userId = getIdFromToken(token)
 
     if (!await this.getPermissionByPermissionName(permission)) throw new PermissionNotFound();
@@ -63,11 +60,9 @@ export class PermissionService{
     }
 
     return false;
-
   }
 
   public async addPermission(token: string, permission: ServicePermissions): Promise<PermissionUser>{
-
     const userId = getIdFromToken(token)
 
     if(!await this.hasPermission(token, ServicePermissions.READ_USER_PERMISSIONS)) throw new AuthorDoesntHavePermission();
@@ -78,11 +73,9 @@ export class PermissionService{
       userId,
       permissionId: await this.getPermissionIdByName(permission)
     })
-
   }
 
   public async removePermission(token: string, permission: ServicePermissions): Promise<PermissionUser>{
-
     const userId = getIdFromToken(token)
 
     if(!await this.hasPermission(token, ServicePermissions.READ_USER_PERMISSIONS)) throw new AuthorDoesntHavePermission();
@@ -95,19 +88,15 @@ export class PermissionService{
         permissionId: await this.getPermissionIdByName(permission)
       }
     })
-
   }
 
   public async getPermissionList(token: string): Promise<Permission[]>{
-
     if(!await this.hasPermission(token, ServicePermissions.READ_USER_PERMISSIONS)) throw new AuthorDoesntHavePermission();
 
     return await this.permissionRepository.findMany({});
-
   }
 
   public async getUserPermissions(token: string): Promise<Permission[]>{
-
     const userId = getIdFromToken(token)
 
     const getUserPermissions = await this.permissionUserRepository.findMany({
@@ -129,13 +118,21 @@ export class PermissionService{
     );
     
     return result;
-
   }
 
   public async isSelf(token: string, targetId: string): Promise<boolean>{
-
     return getIdFromToken(token) === targetId;
+  }
 
+  public async isSelfOrHasPermission(token: string, targetId: string, permission: ServicePermissions): Promise<boolean> {
+    const isSelf = await this.isSelf(token, targetId);
+    const hasPermission = await this.hasPermission(token, permission);
+  
+    if (!hasPermission && !isSelf) {
+      throw new AuthorDoesntHavePermission();
+    }
+
+    return true
   }
 
 }

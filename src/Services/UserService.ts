@@ -5,11 +5,11 @@ import { PermissionService, ServicePermissions } from './PermissionService';
 import { User } from '../Application/Entities/User';
 import { isEmailValid, isPasswordValid, isUsernameValid } from '../Shared/Helpers/Validators';
 import { getIdFromToken, signToken } from '../Shared/Helpers/Token';
+import { ResetPasswordTokenRepository } from '../Application/Repository/ResetPasswordTokenRepository';
+import { MailService } from './MailService';
 import IDatabaseContext, { FindMany } from '../Shared/Context/IDatabaseContext';
 import bcrypt from 'bcrypt';
 import dotenv from 'dotenv';
-import { ResetPasswordTokenRepository } from '../Application/Repository/ResetPasswordTokenRepository';
-import { MailService } from './MailService';
 
 export class UserService{
   private userRepository: UserRepository;
@@ -43,9 +43,7 @@ export class UserService{
   private async findUserByCondition(condition: Record<string, string>): Promise<User> {
     const user = await this.userRepository.findUnique({ where: condition });
   
-    if (!user) {
-      throw new UserNotFound();
-    }
+    if(!user) throw new UserNotFound();
   
     return user;
   }
@@ -85,45 +83,28 @@ export class UserService{
       where: args.where,
     });
   
-    if (!results || results.length === 0) {
-      return [];
-    }
+    if (!results || results.length === 0) throw new UserNotFound();
   
     return results.map(result => this.mapUserToDTO(result));
   }
 
-  public async update(token: string, data: User): Promise<UserPresenterDTO> {
-    const userToUpdate = await this.userRepository.findUnique({ where: { id: data.id } });
-  
-    if (!userToUpdate) {
-      throw new UserNotFound();
-    }
-  
-    const hasPermission = await this.permissionService.isSelf(token, data.id) || await this.permissionService.hasPermission(token, ServicePermissions.READ_USER);
-  
-    if (!hasPermission) {
-      throw new AuthorDoesntHavePermission();
-    }
+  public async update(token: string, target: User): Promise<UserPresenterDTO> {
+    await this.findById(target.id);
+
+    await this.permissionService.isSelfOrHasPermission(token, target.id, ServicePermissions.UPDATE_USER)
   
     const updatedUser = await this.userRepository.update({
-      ...data
-    }, data.id);
+      ...target
+    }, target.id);
   
     return this.mapUserToDTO(updatedUser);
   }
   
   public async delete(token: string, targetId: string): Promise<UserPresenterDTO> {
-    const hasPermission = await this.permissionService.isSelf(token, targetId) || await this.permissionService.hasPermission(token, ServicePermissions.DELETE_USER);
+    await this.findById(targetId);
+
+    await this.permissionService.isSelfOrHasPermission(token, targetId, ServicePermissions.DELETE_USER)
   
-    if (!hasPermission) {
-      throw new AuthorDoesntHavePermission();
-    }
-  
-    const userToDelete = await this.findById(targetId);
-  
-    if (!userToDelete) {
-      throw new UserNotFound();
-    }
   
     // Future reminder comment
     // please future me, don't forget to implement a permission delete cascade
